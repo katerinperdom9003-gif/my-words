@@ -1,0 +1,85 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes"><meta name="theme-color" content="#d9773b">
+<link rel="manifest" href="manifest.json"><link rel="apple-touch-icon" href="icon.png"><title>My Words</title>
+<style>
+:root{--bg:#f6f4ef;--card:#fff;--text:#222;--muted:#777;--accent:#d9773b;--soft:#f6e7dc;--ok:#4a8f6a;--border:#e6e2d8}
+*{box-sizing:border-box}
+body{margin:0;font-family:-apple-system,system-ui,sans-serif;background:var(--bg);color:var(--text);padding:20px 14px 40px}
+.wrap{max-width:480px;margin:0 auto}
+h1{font-size:24px;margin:4px 0 2px;text-align:center}.sub{color:var(--muted);text-align:center;margin:0 0 16px;font-size:15px}
+.card{background:var(--card);border-radius:16px;padding:14px;margin-bottom:10px;box-shadow:0 2px 8px #0001}
+input{width:100%;font-size:16px;padding:11px;border-radius:10px;border:1px solid var(--border);background:var(--bg);color:var(--text);margin-bottom:8px}
+button{font-size:15px;border:0;border-radius:10px;padding:10px 12px;cursor:pointer}
+.primary{background:var(--accent);color:#fff;width:100%;font-weight:600}
+.tabs{display:flex;background:#e6e2d8;border-radius:12px;padding:3px;margin:14px 0 12px}
+.tabs button{flex:1;background:none;padding:8px 6px;font-size:14px}.tabs .on{background:#fff;font-weight:600}
+.w{display:flex;align-items:center;gap:10px}.w .name{flex:1;font-size:22px;font-weight:700;word-break:break-word}
+.say{background:var(--soft);font-size:18px;padding:8px 11px}
+.tip{color:#444;font-size:15px;margin-top:6px}.ex{color:var(--muted);font-size:15px;margin-top:6px;font-style:italic}
+.row{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;align-items:center}
+.row button{background:var(--soft);color:var(--text);font-size:14px;padding:8px 11px}
+.row .pr{background:var(--accent);color:#fff}.row .ms{background:var(--ok);color:#fff}
+.cnt{color:var(--muted);font-size:13px;margin-left:auto}
+.new{font-size:11px;background:var(--accent);color:#fff;border-radius:6px;padding:2px 6px;vertical-align:middle}
+.mastered .name{color:var(--ok)}
+.note{font-size:13px;color:var(--muted);text-align:center;margin:8px 0}
+.empty{color:var(--muted);text-align:center;padding:14px}
+</style></head><body><div class="wrap">
+<h1>My Words 🗣️</h1><p class="sub">Words that are hard to say. Hear them, practice them, master them.</p>
+<div class="card">
+ <input id="nw" placeholder="Add a hard word…" autocomplete="off" autocapitalize="none">
+ <input id="nt" placeholder="Tip (optional): how to say it">
+ <input id="ne" placeholder="Example sentence (optional)">
+ <button class="primary" id="add">Add word</button>
+ <div id="pending"></div>
+</div>
+<div class="tabs" id="tabs"></div>
+<div id="list"></div>
+</div>
+<script>
+const S=JSON.parse(localStorage.getItem("mw")||'{"local":[],"stats":{},"hidden":[]}');
+const save=()=>localStorage.setItem("mw",JSON.stringify(S));
+let remote=JSON.parse(localStorage.getItem("mwRemote")||"[]"),tab="practice";
+const $=id=>document.getElementById(id);
+const key=w=>w.trim().toLowerCase();
+function all(){const m=new Map();remote.forEach(x=>m.set(key(x.word),{...x,src:"list"}));
+ S.local.forEach(x=>{if(!m.has(key(x.word)))m.set(key(x.word),{...x,src:"phone"})});
+ return [...m.values()].filter(x=>!S.hidden.includes(key(x.word)))}
+function st(w){return S.stats[key(w)]||(S.stats[key(w)]={n:0,m:false})}
+function speak(t,rate){try{speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(t);u.lang="en-US";u.rate=rate;
+ const v=speechSynthesis.getVoices().find(v=>v.lang==="en-US");if(v)u.voice=v;speechSynthesis.speak(u)}catch(e){}}
+function draw(){
+ const W=all(),pend=S.local.filter(x=>!remote.some(r=>key(r.word)===key(x.word)));
+ $("pending").innerHTML=pend.length?`<p class="note">${pend.length} new word${pend.length>1?"s":""} only on this phone. Tap to send to Grok Bot so it goes in your drills.</p><button class="primary" id="share" style="background:#555">Copy new words for Grok Bot</button>`:"";
+ if(pend.length)$("share").onclick=()=>{const t="Add these words to My Words: "+pend.map(x=>x.word+(x.tip?" ("+x.tip+")":"")).join(", ");
+  if(navigator.share)navigator.share({text:t}).catch(()=>{});else navigator.clipboard.writeText(t).then(()=>alert("Copied! Paste it in your chat with Grok Bot."))};
+ const practice=W.filter(x=>!st(x.word).m),done=W.filter(x=>st(x.word).m);
+ const tabs=[["practice",`Practice (${practice.length})`],["mastered",`Mastered (${done.length})`],["all",`All (${W.length})`]];
+ $("tabs").innerHTML="";tabs.forEach(([id,l])=>{const b=document.createElement("button");b.textContent=l;if(id===tab)b.className="on";b.onclick=()=>{tab=id;draw()};$("tabs").appendChild(b)});
+ const show=tab==="practice"?practice:tab==="mastered"?done:W;
+ $("list").innerHTML=show.length?"":`<div class="empty">${tab==="mastered"?"No mastered words yet. You'll get there!":"No words here yet."}</div>`;
+ show.forEach(x=>{const s=st(x.word),el=document.createElement("div");el.className="card"+(s.m?" mastered":"");
+  el.innerHTML=`<div class="w"><div class="name"></div><button class="say" data-a="say">🔊</button><button class="say" data-a="slow">🐢</button></div>
+   ${x.tip?'<div class="tip"></div>':""}${x.example?'<div class="ex"></div>':""}
+   <div class="row"><button class="pr" data-a="p">I said it ✓</button>${x.example?'<button data-a="exs">🔊 Sentence</button>':""}
+   <button class="${s.m?"":"ms"}" data-a="m">${s.m?"Practice again":"Mastered ⭐"}</button><button data-a="del">Delete</button><span class="cnt">Said ${s.n}×</span></div>`;
+  el.querySelector(".name").textContent=x.word;if(x.src==="phone"&&!remote.length)0;
+  if(x.src==="phone"){const n=document.createElement("span");n.className="new";n.textContent="new";n.style.marginLeft="8px";el.querySelector(".name").appendChild(n)}
+  if(x.tip)el.querySelector(".tip").textContent="💡 "+x.tip;if(x.example)el.querySelector(".ex").textContent="“"+x.example+"”";
+  el.querySelectorAll("[data-a]").forEach(b=>b.onclick=()=>{const a=b.dataset.a;
+   if(a==="say")return speak(x.word,0.9);if(a==="slow")return speak(x.word,0.45);if(a==="exs")return speak(x.example,0.85);
+   if(a==="p"){s.n++;save();el.querySelector(".cnt").textContent=`Said ${s.n}×`;speak(x.word,0.9);return}
+   if(a==="m"){s.m=!s.m}
+   if(a==="del"){if(!confirm(`Delete "${x.word}"?`))return;S.hidden.push(key(x.word));S.local=S.local.filter(y=>key(y.word)!==key(x.word))}
+   save();draw()});
+  $("list").appendChild(el)})}
+function add(){const w=$("nw").value.trim();if(!w)return;S.hidden=S.hidden.filter(h=>h!==key(w));
+ if(!all().some(x=>key(x.word)===key(w)))S.local.unshift({word:w,tip:$("nt").value.trim(),example:$("ne").value.trim()});
+ ["nw","nt","ne"].forEach(i=>$(i).value="");save();tab="practice";draw();speak(w,0.9)}
+$("add").onclick=add;$("nw").addEventListener("keydown",e=>{if(e.key==="Enter")add()});
+draw();
+fetch("words.json?t="+Date.now(),{cache:"no-store"}).then(r=>r.json()).then(j=>{remote=j;localStorage.setItem("mwRemote",JSON.stringify(j));draw()}).catch(()=>{});
+if("speechSynthesis" in window)speechSynthesis.onvoiceschanged=()=>{};
+if("serviceWorker" in navigator)navigator.serviceWorker.register("sw.js");
+</script></body></html>
