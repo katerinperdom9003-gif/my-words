@@ -30,7 +30,6 @@ button{font-size:15px;border:0;border-radius:10px;padding:10px 12px;cursor:point
 <div class="card">
  <input id="nw" placeholder="Add a hard word…" autocomplete="off" autocapitalize="none">
  <button class="primary" id="add">Add word</button>
- <div id="pending"></div>
 </div>
 <div class="tabs" id="tabs"></div>
 <div id="list"></div>
@@ -45,13 +44,16 @@ function all(){const m=new Map();remote.forEach(x=>m.set(key(x.word),{...x,src:"
  S.local.forEach(x=>{if(!m.has(key(x.word)))m.set(key(x.word),{...x,src:"phone"})});
  return [...m.values()].filter(x=>!S.hidden.includes(key(x.word)))}
 function st(w){return S.stats[key(w)]||(S.stats[key(w)]={n:0,m:false})}
-function speak(t,rate){try{speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(t);u.lang="en-US";u.rate=rate;
- const v=speechSynthesis.getVoices().find(v=>v.lang==="en-US");if(v)u.voice=v;speechSynthesis.speak(u)}catch(e){}}
+function tts(t,slow){try{const ss=window.speechSynthesis;if(!ss)return;if(ss.speaking)ss.cancel();
+ const u=new SpeechSynthesisUtterance(t);u.lang="en-US";u.rate=slow?0.5:0.9;
+ const v=ss.getVoices().find(v=>v.lang==="en-US");if(v)u.voice=v;ss.speak(u);ss.resume()}catch(e){}}
+let player=null;
+function speak(t,slow){const slug=t.trim().toLowerCase().replace(/\s+/g,"-");
+ try{if(player)player.pause();player=new Audio("audio/"+encodeURIComponent(slug)+(slow?"-slow":"")+".mp3");
+  let fell=false;const fb=()=>{if(!fell){fell=true;tts(t,slow)}};
+  player.onerror=fb;const p=player.play();if(p&&p.catch)p.catch(fb)}catch(e){tts(t,slow)}}
 function draw(){
- const W=all(),pend=S.local.filter(x=>!remote.some(r=>key(r.word)===key(x.word)));
- $("pending").innerHTML=pend.length?`<p class="note">${pend.length} new word${pend.length>1?"s":""} only on this phone. Tap to send to Grok Bot so it goes in your drills.</p><button class="primary" id="share" style="background:#555">Copy new words for Grok Bot</button>`:"";
- if(pend.length)$("share").onclick=()=>{const t="Add these words to My Words: "+pend.map(x=>x.word).join(", ");
-  if(navigator.share)navigator.share({text:t}).catch(()=>{});else navigator.clipboard.writeText(t).then(()=>alert("Copied! Paste it in your chat with Grok Bot."))};
+ const W=all();
  const practice=W.filter(x=>!st(x.word).m),done=W.filter(x=>st(x.word).m);
  const tabs=[["practice",`Practice (${practice.length})`],["mastered",`Mastered (${done.length})`],["all",`All (${W.length})`]];
  $("tabs").innerHTML="";tabs.forEach(([id,l])=>{const b=document.createElement("button");b.textContent=l;if(id===tab)b.className="on";b.onclick=()=>{tab=id;draw()};$("tabs").appendChild(b)});
@@ -61,18 +63,17 @@ function draw(){
   el.innerHTML=`<div class="w"><div class="name"></div><button class="say" data-a="say">Listen</button><button class="say" data-a="slow">Slow</button></div>
    <div class="row"><button class="pr" data-a="p">I said it</button>
    <button class="${s.m?"":"ms"}" data-a="m">${s.m?"Practice again":"Mastered"}</button><button data-a="del">Delete</button><span class="cnt">Said ${s.n}×</span></div>`;
-  el.querySelector(".name").textContent=x.word;if(x.src==="phone"&&!remote.length)0;
-  if(x.src==="phone"){const n=document.createElement("span");n.className="new";n.textContent="new";n.style.marginLeft="8px";el.querySelector(".name").appendChild(n)}
+  el.querySelector(".name").textContent=x.word;
   el.querySelectorAll("[data-a]").forEach(b=>b.onclick=()=>{const a=b.dataset.a;
-   if(a==="say")return speak(x.word,0.9);if(a==="slow")return speak(x.word,0.45);if(a==="exs")return speak(x.example,0.85);
-   if(a==="p"){s.n++;save();el.querySelector(".cnt").textContent=`Said ${s.n}×`;speak(x.word,0.9);return}
+   if(a==="say")return speak(x.word,false);if(a==="slow")return speak(x.word,true);
+   if(a==="p"){s.n++;save();el.querySelector(".cnt").textContent=`Said ${s.n}×`;speak(x.word,false);return}
    if(a==="m"){s.m=!s.m}
    if(a==="del"){if(!confirm(`Delete "${x.word}"?`))return;S.hidden.push(key(x.word));S.local=S.local.filter(y=>key(y.word)!==key(x.word))}
    save();draw()});
   $("list").appendChild(el)})}
 function add(){const w=$("nw").value.trim();if(!w)return;S.hidden=S.hidden.filter(h=>h!==key(w));
  if(!all().some(x=>key(x.word)===key(w)))S.local.unshift({word:w});
- $("nw").value="";save();tab="practice";draw();speak(w,0.9)}
+ $("nw").value="";save();tab="practice";draw()}
 $("add").onclick=add;$("nw").addEventListener("keydown",e=>{if(e.key==="Enter")add()});
 draw();
 fetch("words.json?t="+Date.now(),{cache:"no-store"}).then(r=>r.json()).then(j=>{remote=j;localStorage.setItem("mwRemote",JSON.stringify(j));draw()}).catch(()=>{});
