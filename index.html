@@ -15,7 +15,7 @@ button{font-size:15px;border:0;border-radius:10px;padding:10px 12px;cursor:point
 .tabs{display:flex;background:#e6e2d8;border-radius:12px;padding:3px;margin:14px 0 12px}
 .tabs button{flex:1;background:none;padding:8px 6px;font-size:14px}.tabs .on{background:#fff;font-weight:600}
 .w{display:flex;align-items:center;gap:10px}.w .name{flex:1;font-size:22px;font-weight:700;word-break:break-word}
-.say{background:var(--soft);font-size:18px;padding:8px 11px}
+.say{background:var(--soft);font-size:14px;padding:8px 12px}
 .tip{color:#444;font-size:15px;margin-top:6px}.ex{color:var(--muted);font-size:15px;margin-top:6px;font-style:italic}
 .row{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;align-items:center}
 .row button{background:var(--soft);color:var(--text);font-size:14px;padding:8px 11px}
@@ -26,11 +26,9 @@ button{font-size:15px;border:0;border-radius:10px;padding:10px 12px;cursor:point
 .note{font-size:13px;color:var(--muted);text-align:center;margin:8px 0}
 .empty{color:var(--muted);text-align:center;padding:14px}
 </style></head><body><div class="wrap">
-<h1>My Words 🗣️</h1><p class="sub">Words that are hard to say. Hear them, practice them, master them.</p>
+<h1>My Words</h1><p class="sub">Words that are hard to say. Hear them, practice them, master them.</p>
 <div class="card">
  <input id="nw" placeholder="Add a hard word…" autocomplete="off" autocapitalize="none">
- <input id="nt" placeholder="Tip (optional): how to say it">
- <input id="ne" placeholder="Example sentence (optional)">
  <button class="primary" id="add">Add word</button>
  <div id="pending"></div>
 </div>
@@ -52,7 +50,7 @@ function speak(t,rate){try{speechSynthesis.cancel();const u=new SpeechSynthesisU
 function draw(){
  const W=all(),pend=S.local.filter(x=>!remote.some(r=>key(r.word)===key(x.word)));
  $("pending").innerHTML=pend.length?`<p class="note">${pend.length} new word${pend.length>1?"s":""} only on this phone. Tap to send to Grok Bot so it goes in your drills.</p><button class="primary" id="share" style="background:#555">Copy new words for Grok Bot</button>`:"";
- if(pend.length)$("share").onclick=()=>{const t="Add these words to My Words: "+pend.map(x=>x.word+(x.tip?" ("+x.tip+")":"")).join(", ");
+ if(pend.length)$("share").onclick=()=>{const t="Add these words to My Words: "+pend.map(x=>x.word).join(", ");
   if(navigator.share)navigator.share({text:t}).catch(()=>{});else navigator.clipboard.writeText(t).then(()=>alert("Copied! Paste it in your chat with Grok Bot."))};
  const practice=W.filter(x=>!st(x.word).m),done=W.filter(x=>st(x.word).m);
  const tabs=[["practice",`Practice (${practice.length})`],["mastered",`Mastered (${done.length})`],["all",`All (${W.length})`]];
@@ -60,13 +58,11 @@ function draw(){
  const show=tab==="practice"?practice:tab==="mastered"?done:W;
  $("list").innerHTML=show.length?"":`<div class="empty">${tab==="mastered"?"No mastered words yet. You'll get there!":"No words here yet."}</div>`;
  show.forEach(x=>{const s=st(x.word),el=document.createElement("div");el.className="card"+(s.m?" mastered":"");
-  el.innerHTML=`<div class="w"><div class="name"></div><button class="say" data-a="say">🔊</button><button class="say" data-a="slow">🐢</button></div>
-   ${x.tip?'<div class="tip"></div>':""}${x.example?'<div class="ex"></div>':""}
-   <div class="row"><button class="pr" data-a="p">I said it ✓</button>${x.example?'<button data-a="exs">🔊 Sentence</button>':""}
-   <button class="${s.m?"":"ms"}" data-a="m">${s.m?"Practice again":"Mastered ⭐"}</button><button data-a="del">Delete</button><span class="cnt">Said ${s.n}×</span></div>`;
+  el.innerHTML=`<div class="w"><div class="name"></div><button class="say" data-a="say">Listen</button><button class="say" data-a="slow">Slow</button></div>
+   <div class="row"><button class="pr" data-a="p">I said it</button>
+   <button class="${s.m?"":"ms"}" data-a="m">${s.m?"Practice again":"Mastered"}</button><button data-a="del">Delete</button><span class="cnt">Said ${s.n}×</span></div>`;
   el.querySelector(".name").textContent=x.word;if(x.src==="phone"&&!remote.length)0;
   if(x.src==="phone"){const n=document.createElement("span");n.className="new";n.textContent="new";n.style.marginLeft="8px";el.querySelector(".name").appendChild(n)}
-  if(x.tip)el.querySelector(".tip").textContent="💡 "+x.tip;if(x.example)el.querySelector(".ex").textContent="“"+x.example+"”";
   el.querySelectorAll("[data-a]").forEach(b=>b.onclick=()=>{const a=b.dataset.a;
    if(a==="say")return speak(x.word,0.9);if(a==="slow")return speak(x.word,0.45);if(a==="exs")return speak(x.example,0.85);
    if(a==="p"){s.n++;save();el.querySelector(".cnt").textContent=`Said ${s.n}×`;speak(x.word,0.9);return}
@@ -75,8 +71,8 @@ function draw(){
    save();draw()});
   $("list").appendChild(el)})}
 function add(){const w=$("nw").value.trim();if(!w)return;S.hidden=S.hidden.filter(h=>h!==key(w));
- if(!all().some(x=>key(x.word)===key(w)))S.local.unshift({word:w,tip:$("nt").value.trim(),example:$("ne").value.trim()});
- ["nw","nt","ne"].forEach(i=>$(i).value="");save();tab="practice";draw();speak(w,0.9)}
+ if(!all().some(x=>key(x.word)===key(w)))S.local.unshift({word:w});
+ $("nw").value="";save();tab="practice";draw();speak(w,0.9)}
 $("add").onclick=add;$("nw").addEventListener("keydown",e=>{if(e.key==="Enter")add()});
 draw();
 fetch("words.json?t="+Date.now(),{cache:"no-store"}).then(r=>r.json()).then(j=>{remote=j;localStorage.setItem("mwRemote",JSON.stringify(j));draw()}).catch(()=>{});

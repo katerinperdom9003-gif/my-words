@@ -1,10 +1,26 @@
 [
-  {"word":"very","tip":"Start with V: top teeth touch your lower lip and buzz. Not \"berry\".","example":"I am very happy today."},
-  {"word":"vacation","tip":"vay-KAY-shun. V with teeth on lip, stress on KAY.","example":"We are planning a vacation in Lake Tahoe."},
-  {"word":"think","tip":"Soft TH: tongue between your teeth, blow air, no voice. Not \"tink\" or \"sink\".","example":"I think it is a good idea."},
-  {"word":"three","tip":"Soft TH then R: tongue out, blow air, then \"ree\". Not \"tree\".","example":"I have three apps on my phone."},
-  {"word":"thought","tip":"Soft TH + \"awt\". Rhymes with \"bought\". The gh is silent.","example":"I parked that thought for later."},
-  {"word":"worked","tip":"-ed sounds like T: \"workt\", one syllable. Not \"work-ed\".","example":"I worked on my habits today."},
-  {"word":"planned","tip":"-ed sounds like D: \"pland\", one syllable.","example":"I planned my trip yesterday."},
-  {"word":"wanted","tip":"After T, -ed is a full syllable: \"WAN-tid\".","example":"I wanted to practice English."}
+  {
+    "word": "very"
+  },
+  {
+    "word": "vacation"
+  },
+  {
+    "word": "think"
+  },
+  {
+    "word": "three"
+  },
+  {
+    "word": "thought"
+  },
+  {
+    "word": "worked"
+  },
+  {
+    "word": "planned"
+  },
+  {
+    "word": "wanted"
+  }
 ]
