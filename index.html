@@ -25,12 +25,14 @@ button{font-size:15px;border:0;border-radius:10px;padding:10px 12px;cursor:point
 .mastered .name{color:var(--ok)}
 .note{font-size:13px;color:var(--muted);text-align:center;margin:8px 0}
 .empty{color:var(--muted);text-align:center;padding:14px}
+[hidden]{display:none!important}
 </style></head><body><div class="wrap">
 <h1>My Words</h1><p class="sub">Words that are hard to say. Hear them, practice them, master them.</p>
 <div class="card">
  <input id="nw" placeholder="Add a hard word…" autocomplete="off" autocapitalize="none">
  <button class="primary" id="add">Add word</button>
 </div>
+<div class="card sync" id="sync" hidden><div class="note" id="syncTxt" style="margin:0 0 8px"></div><button class="primary" id="send">Send my words</button></div>
 <div class="tabs" id="tabs"></div>
 <div id="list"></div>
 </div>
@@ -52,8 +54,15 @@ function speak(t,slow){const slug=t.trim().toLowerCase().replace(/\s+/g,"-");
  try{if(player)player.pause();player=new Audio("audio/"+encodeURIComponent(slug)+(slow?"-slow":"")+".mp3");
   let fell=false;const fb=()=>{if(!fell){fell=true;tts(t,slow)}};
   player.onerror=fb;const p=player.play();if(p&&p.catch)p.catch(fb)}catch(e){tts(t,slow)}}
+function pending(){const r=new Set(remote.map(x=>key(x.word)));return S.local.filter(x=>!r.has(key(x.word))&&!S.hidden.includes(key(x.word))).map(x=>x.word)}
+function drawSync(){const p=pending();$("sync").hidden=!p.length;
+ $("syncTxt").textContent=p.length===1?"1 word is only on this phone. Send it to Grok Bot to add it to your list.":p.length+" words are only on this phone. Send them to Grok Bot to add them to your list."}
+async function sendWords(){const p=pending();if(!p.length)return;
+ const text="Please add these words to My Words: "+p.join(", ");
+ try{if(navigator.share){await navigator.share({text});return}}catch(e){if(e&&e.name==="AbortError")return}
+ try{await navigator.clipboard.writeText(text);alert("Copied. Paste it in your Grok Bot chat.")}catch(e){prompt("Copy this and send it to Grok Bot:",text)}}
 function draw(){
- const W=all();
+ drawSync();const W=all();
  const practice=W.filter(x=>!st(x.word).m),done=W.filter(x=>st(x.word).m);
  const tabs=[["practice",`Practice (${practice.length})`],["mastered",`Mastered (${done.length})`],["all",`All (${W.length})`]];
  $("tabs").innerHTML="";tabs.forEach(([id,l])=>{const b=document.createElement("button");b.textContent=l;if(id===tab)b.className="on";b.onclick=()=>{tab=id;draw()};$("tabs").appendChild(b)});
@@ -74,7 +83,7 @@ function draw(){
 function add(){const w=$("nw").value.trim();if(!w)return;S.hidden=S.hidden.filter(h=>h!==key(w));
  if(!all().some(x=>key(x.word)===key(w)))S.local.unshift({word:w});
  $("nw").value="";save();tab="practice";draw()}
-$("add").onclick=add;$("nw").addEventListener("keydown",e=>{if(e.key==="Enter")add()});
+$("add").onclick=add;$("send").onclick=sendWords;$("nw").addEventListener("keydown",e=>{if(e.key==="Enter")add()});
 draw();
 fetch("words.json?t="+Date.now(),{cache:"no-store"}).then(r=>r.json()).then(j=>{remote=j;localStorage.setItem("mwRemote",JSON.stringify(j));draw()}).catch(()=>{});
 if("speechSynthesis" in window)speechSynthesis.onvoiceschanged=()=>{};
